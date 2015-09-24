@@ -23,7 +23,7 @@ fn main() {
     let settings = game::GameSettings::default();
 
     // Create window
-    let window_size = settings.size + 200.0;
+    let window_size = settings.size;
     let opengl = OpenGL::V3_2;
     let (width, height) = (window_size as u32, window_size as u32);
     let window: PistonWindow<(), Sdl2Window> =  WindowSettings::new("Physics game", (width, height + 20))
@@ -38,6 +38,7 @@ fn main() {
     let resource_path = current_exe().unwrap().parent().unwrap().to_owned().join("resources/");
 
     let mut game = game::Game::new(settings);
+    game.initialize_game();
 
 
     for e in window {
@@ -48,11 +49,16 @@ fn main() {
 
             Some(Event::Input(Input::Release(Button::Keyboard(key)))) => {
                 game.key_release(key);
+            },
+            Some(Event::Input(Input::Move(Motion::MouseCursor(x, y)))) => {
+                println!("Window pos: ({}, {})", x, y);
+                let coor = game.camera.window_pos_to_coord(&::nalgebra::Vec2{x: x, y: y});
+                println!("Coord: ({}, {})", coor.x, coor.y);
             }
 
             Some(Event::Render(_)) => {
                 e.draw_2d(|c, g| {
-                    game.render(c.trans(100.0, 100.0), g)
+                    game.render(c, g)
                 });
                 //game.pause();
             }

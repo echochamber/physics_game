@@ -2,20 +2,20 @@ use piston_window::*;
 use piston;
 use nalgebra::Vec2;
 
+pub type Coord = Vec2<f64>;
+
 pub struct Camera {
-    x_offset: i32,
-    y_offset: i32,
+    center: Coord,
     curr_zoom: f64,
     view_dims: piston::window::Size
 }
 
 impl Camera {
-    pub fn new() -> Camera {
+    pub fn new(width: u32, height: u32) -> Camera {
         Camera {
-            x_offset: 0,
-            y_offset: 0,
+            center: Coord { x: 0.0, y: 0.0},
             curr_zoom: 1.0,
-            view_dims: piston::window::Size{width: 800, height: 800 }
+            view_dims: piston::window::Size{width: width, height: height}
         }
     }
 
@@ -23,15 +23,39 @@ impl Camera {
         self.view_dims = view_dims
     }
 
-    pub fn handle_event(&mut self, event: &Event) {
-        
+    pub fn set_center(&mut self, x: f64, y: f64) {
+        self.center.x = x;
+        self.center.y = y;
     }
 
-    pub fn map_pixel_to_coords(&mut self, pixel_pos: Vec2<i64>) -> Vec2<f64> {
-        let mapped_coords = Vec2::new(
-            (pixel_pos.x as f64 * self.curr_zoom - (self.view_dims.width as f64 / 2.0) + self.x_offset as f64),
-            (pixel_pos.y as f64 * self.curr_zoom - (self.view_dims.height as f64 / 2.0) + self.y_offset as f64)
-        );
-        mapped_coords
+    pub fn offset_center(&mut self, x: f64, y: f64) {
+        self.center.x += x;
+        self.center.y += y;
+    }
+
+    pub fn set_zoom(&mut self, zoom: f64) {
+        self.curr_zoom = zoom;
+    }
+
+    pub fn window_pos_to_coord(&self, window_pos: &Vec2<f64>) -> Vec2<f64> {
+        Vec2::new(
+            self.center.x + (window_pos.x - self.view_dims.width as f64 / 2.0) / self.curr_zoom,
+            self.center.y + (window_pos.y - self.view_dims.height as f64 / 2.0) / self.curr_zoom
+        )
+    }
+
+    pub fn coord_to_window_pos(&self, coord: &Vec2<f64>) -> Vec2<f64> {
+        Vec2::new(
+            self.curr_zoom * (coord.x - self.center.x) + (self.view_dims.width as f64 / 2.0),
+            self.curr_zoom * (coord.y - self.center.y) + (self.view_dims.height as f64 / 2.0)
+        )
+    }
+
+    pub fn scale_by_zoom(&self, val: f64) -> f64 {
+        val * self.curr_zoom
+    }
+
+    pub fn inverse_scale_by_zoom(&self, val: f64) -> f64 {
+        val / self.curr_zoom
     }
 }

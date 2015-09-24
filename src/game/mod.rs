@@ -6,6 +6,8 @@ use nalgebra::{Vec2, Iso2};
 use nalgebra;
 use num::One;
 use display::objects::Ball;
+use display::camera::Camera;
+use display::camera::Coord;
 
 use display;
 
@@ -15,7 +17,8 @@ pub struct Game {
     settings: GameSettings,
     world: World,
     paused: bool,
-    balls: Vec<Ball>
+    balls: Vec<Ball>,
+    pub camera: Camera
 }
 
 impl Game {
@@ -23,39 +26,12 @@ impl Game {
         let mut world = World::new();
         world.set_gravity(Vec2::new(0.0, settings.gravity));
 
-        let mut rb = RigidBody::new_static(ncollide::shape::Plane::new(Vec2::new(-1.0, -1.0)), 0.3, 0.6);
-        rb.append_translation(&Vec2::new(600.0, 600.0));
-        world.add_body(rb);
-
-        let mut rb = RigidBody::new_static(ncollide::shape::Plane::new(Vec2::new(1.0, -1.0)), 0.3, 0.6);
-        rb.append_translation(&Vec2::new(600.0, 600.0));
-        world.add_body(rb);
-
-        let num     = 20usize;
-        let rad     = 0.5;
-        let shift   = 2.5 * rad;
-        let centerx = shift * (num as f64) / 2.0;
-        let centery = shift * (num as f64) / 2.0;
-
-        let mut ball_vec = Vec::with_capacity(300);
-        for i in 0usize .. num {
-            for j in 0usize .. num {
-                let x = i as f64 * 2.5 * rad - centerx;
-                let y = j as f64 * 2.5 * rad - centery * 2.0 - 20.0;
-
-                let mut rb = RigidBody::new_dynamic(ncollide::shape::Ball::new(1.0), 1.0, 0.3, 0.6);
-
-                rb.append_translation(&Vec2::new(x, y));
-                let handle = world.add_body(rb);
-                ball_vec.push(display::objects::Ball::new(10.0, display::GameColors::Orange, handle))
-            }
-        }
-
         Game {
             settings: settings,
             world: world,
             paused: false,
-            balls: ball_vec
+            balls: Vec::with_capacity(300),
+            camera: Camera::new(600, 600)
         }
     }
 }
@@ -94,26 +70,65 @@ impl Game {
         self.paused = false;
     }
 
-    pub fn render(&self, c: Context, g: &mut G2d) {
+    pub fn render(&mut self, c: Context, g: &mut G2d) {
         if self.paused {
             return;
         }
 
-        clear([1.0; 4], g);
+        //let context = self.camera.update_context(&c);
 
-        let border = Rectangle::new_border([0.0, 0.0, 0.0, 1.0], 2.0);
+        clear([1.0; 4], g);
+        let border = Rectangle::new_border([0.0, 0.0, 0.0, 1.0], self.camera.scale_by_zoom(2.0));
+        let border_corner = self.camera.coord_to_window_pos(&Coord {x: -200.0, y: -200.0});
+        let border_size = self.camera.scale_by_zoom(self.settings.size - 200.0);
+        //println!("{:?} {:?}", border_corner, border_size);
         border.draw(
-            [0.0, 0.0, self.settings.size, self.settings.size],
+            [border_corner.x, border_corner.y, border_size, border_size],
             &c.draw_state,
             c.transform,
             g
         );
 
         for ball in &self.balls {
-            ball.render(c, g);
+            ball.render(&self.camera, c, g);
+        }
+    }
+    pub fn initialize_game(&mut self) {
+        self.camera.set_zoom(0.5);
+        self.camera.offset_center(100.0, 100.0);
+
+        let plane_trans = self.camera.scale_by_zoom(300.0);
+
+        let mut rb = RigidBody::new_static(ncollide::shape::Plane::new(Vec2::new(-1.0, -1.0)), 0.3, 0.6);
+        //rb.append_translation(&Vec2::new(plane_trans, plane_trans));
+        self.world.add_body(rb);
+
+        let mut rb = RigidBody::new_static(ncollide::shape::Plane::new(Vec2::new(1.0, -1.0)), 0.3, 0.6);
+        //rb.append_translation(&Vec2::new(plane_trans, plane_trans));
+        self.world.add_body(rb);
+
+        let num     = 20usize;
+        let rad     = 0.5;
+        let shift   = 2.5 * rad;
+        let centerx = shift * (num as f64) / 2.0;
+        let centery = shift * (num as f64) / 2.0;
+        
+        for i in 0usize .. 1usize {
+            for j in 0usize .. 1usize {
+                let x = i as f64 * 2.5 * rad - centerx;
+                let y = j as f64 * 2.5 * rad - centery * 2.0 - 20.0;
+
+                let mut rb = RigidBody::new_dynamic(ncollide::shape::Ball::new(1.0), 1.0, 0.3, 0.6);
+
+                rb.append_translation(&Vec2::new(self.camera.scale_by_zoom(x), self.camera.scale_by_zoom(y)));
+                rb.append_translation(&Vec2::new(-plane_trans, -plane_trans));
+                let handle = self.world.add_body(rb);
+                self.balls.push(display::objects::Ball::new(10.0, display::GameColors::Orange, handle))
+            }
         }
     }
 }
+
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GameSettings {
@@ -125,7 +140,7 @@ pub struct GameSettings {
 impl Default for GameSettings {
     fn default() -> GameSettings {
         GameSettings {
-            size: 800.0,
+            size: 600.0,
             gravity: 9.81,
             speed: 2.25
         }

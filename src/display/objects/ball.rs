@@ -2,7 +2,7 @@ use nalgebra;
 use nphysics::object::RigidBodyHandle;
 use display::colors::GameColors;
 use piston_window::*;
-
+use display::camera::Camera;
 
 pub struct Ball {
     body: RigidBodyHandle,
@@ -21,17 +21,22 @@ impl Ball {
         }
     }
 
-    pub fn render(&self, c: Context, g: &mut G2d) {
+    pub fn render(&self, camera: &Camera, c: Context, g: &mut G2d) {
         let body = self.body.borrow();
+
         let pos = nalgebra::translation(body.position());
         //let rot = nalgebra::rotation(body.position());
 
+        let draw_pos = camera.coord_to_window_pos(&pos);
+
+        let scaled_radius = camera.scale_by_zoom(self.radius);
+
         self.gfx.draw(
             [
-                pos.x - self.radius,
-                pos.y - self.radius,
-                self.radius * 2.0,
-                self.radius * 2.0
+                draw_pos.x - scaled_radius,
+                draw_pos.y - scaled_radius,
+                scaled_radius * 2.0,
+                scaled_radius * 2.0
             ],
             &c.draw_state,
             c.transform,
