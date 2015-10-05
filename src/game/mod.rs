@@ -18,7 +18,9 @@ pub struct Game {
     world: World,
     paused: bool,
     balls: Vec<Ball>,
-    pub camera: Camera
+    pub camera: Camera,
+    timer: f64,
+    temp: f64
 }
 
 impl Game {
@@ -31,7 +33,9 @@ impl Game {
             world: world,
             paused: false,
             balls: Vec::with_capacity(300),
-            camera: Camera::new(600, 600)
+            camera: Camera::new(620, 620),
+            timer: 0.0,
+            temp: 0.0
         }
     }
 }
@@ -58,7 +62,13 @@ impl Game {
 
     pub fn update(&mut self, dt: f64) {
         if !self.paused {
+            self.timer += dt;
             self.world.step(dt * self.settings.speed);
+
+            if self.timer - self.temp > 1.0 {
+                self.temp = self.timer;
+                self.paused = true;
+            }
         }
     }
 
@@ -95,7 +105,7 @@ impl Game {
     }
     pub fn initialize_game(&mut self) {
         self.camera.set_zoom(0.5);
-        self.camera.offset_center(100.0, 100.0);
+        //self.camera.offset_center(100.0, 100.0);
 
         let plane_trans = self.camera.scale_by_zoom(300.0);
 
@@ -120,7 +130,7 @@ impl Game {
 
                 let mut rb = RigidBody::new_dynamic(ncollide::shape::Ball::new(1.0), 1.0, 0.3, 0.6);
 
-                rb.append_translation(&Vec2::new(self.camera.scale_by_zoom(x), self.camera.scale_by_zoom(y)));
+                rb.append_translation(&Vec2::new(self.camera.scale_by_zoom(x) + 000.0, self.camera.scale_by_zoom(y)+ 000.0 ));
                 rb.append_translation(&Vec2::new(-plane_trans, -plane_trans));
                 let handle = self.world.add_body(rb);
                 self.balls.push(display::objects::Ball::new(10.0, display::GameColors::Orange, handle))

@@ -26,7 +26,7 @@ fn main() {
     let window_size = settings.size;
     let opengl = OpenGL::V3_2;
     let (width, height) = (window_size as u32, window_size as u32);
-    let window: PistonWindow<(), Sdl2Window> =  WindowSettings::new("Physics game", (width, height + 20))
+    let window: PistonWindow<(), Sdl2Window> =  WindowSettings::new("Physics game", (width + 20, height + 20))
         .samples(4)
         .vsync(true)
         .exit_on_esc(true)
